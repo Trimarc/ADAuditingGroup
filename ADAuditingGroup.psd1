@@ -1,12 +1,12 @@
 ﻿@{
     AliasesToExport      = @()
-    Author               = 'Jake Hildret'
+    Author               = 'Jake Hildreth'
     CmdletsToExport      = @()
     CompanyName          = 'Trimarc'
     CompatiblePSEditions = @('Desktop', 'Core')
     Copyright            = '(c) 2024 - 2024 Jake Hildreth @ Trimarc. All rights reserved.'
     Description          = 'Simple project ADAuditingGroup'
-    FunctionsToExport    = 'Get-AuditingGroupAcls.ps1'
+    FunctionsToExport    = @('New-ADAuditingGroup', 'New-ADAuditingGroupMember', 'Remove-ADAuditingGroupAcl', 'Set-ADAuditingGroupAcl')
     GUID                 = '92127ca3-34d8-46e9-b463-6f4023accbc4'
     ModuleVersion        = '1.0.0'
     PowerShellVersion    = '5.1'

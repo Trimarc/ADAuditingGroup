@@ -4,7 +4,7 @@
         ModuleVersion          = '1.0.0'
         CompatiblePSEditions   = @('Desktop', 'Core')
         GUID                   = '92127ca3-34d8-46e9-b463-6f4023accbc4'
-        Author                 = 'Jake Hildret'
+        Author                 = 'Jake Hildreth'
         CompanyName            = 'Trimarc'
         Copyright              = "(c) 2024 - $((Get-Date).Year) Jake Hildreth @ Trimarc. All rights reserved."
         Description            = 'Simple project ADAuditingGroup'

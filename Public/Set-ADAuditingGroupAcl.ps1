@@ -1,8 +1,26 @@
-function Get-AuditingGroupAcls.ps1 {
+function Set-ADAuditingGroupAcl {
+    <#
+        .SYNOPSIS
+
+        .DESCRIPTION
+
+        .PARAMETER Parameter
+
+        .INPUTS
+
+        .OUTPUTS
+
+        .EXAMPLE
+
+        .LINK
+    #>
     [CmdLetBinding()]
     param (
-        $Group = 'BLUETUXEDO\Auditing'
-    )    
+        [string]$Group,
+        $Path = $PWD
+    )
+
+    #requires -Version 5
 
     # Clear old PSDrive
     if (Get-PSDrive ADDOMAIN -ErrorAction SilentlyContinue) { Remove-PSDrive ADDOMAIN }
@@ -20,9 +38,11 @@ function Get-AuditingGroupAcls.ps1 {
     $Domains = (Get-ADForest).Domains
 
     # Create empty objects to hold collected objects
-    $ObjectsWithUnreadableACL = @()
-    $ObjectsWithUnreadableSD = @()
     $ObjectsThatCouldNotBeUpdated = @()
+    $ObjectsWithExistingAce = @()
+    $ObjectsWithNewAce = @()
+    $ObjectsWithUnreadableAcl = @()
+    $ObjectsWithUnreadableSD = @()
     $Acl = $null
 
     # Loop through all domains in the forest
@@ -44,12 +64,13 @@ function Get-AuditingGroupAcls.ps1 {
             } catch {
                 $Acl = ''
                 Write-Warning "Cannot read Security Descriptor from $($object.DistinguishedName)"
-                $ObjectsWithUnreadableSD += $object.DistinguishedName
+                $ObjectsWithUnreadableSD += $object.DistinguishedName.ToString()
             }
 
+            # Attempt to read ACE
             if ('' -eq $Acl.Access -or $null -eq $Acl.Access) {
                 Write-Warning "Unable to read ACL from $($object.DistinguishedName)"
-                $ObjectsWithUnreadableACL += $object.DistinguishedName
+                $ObjectsWithUnreadableACL += $object.DistinguishedName.ToString()
             } else {
                 # Check if desired ACE already exists
                 $AceExists = $false
@@ -63,17 +84,19 @@ function Get-AuditingGroupAcls.ps1 {
                 }
 
                 if ($AceExists) {
-                    Write-Host "$Group should be able to read $($object.DistinguishedName)"
+                    # Write-Host "$Group should be able to read $($object.DistinguishedName)"
+                    $ObjectsWithExistingAce += $object.DistinguishedName.ToString()
                 } else {
-                    Write-Host "$Group cannot currently read $($object.DistinguishedName). Attempting to add the correct ACE."
+                    Write-Host "No ACE for $Group exists on $($object.DistinguishedName). Attempting to add the correct ACE."
                     $Acl.AddAccessRule($AceToAdd)
 
                     # Write the updated ACL on the Object
                     try {
                         Set-Acl -Path $ObjectPath -AclObject $Acl -ErrorAction Stop
+                        $ObjectsWithNewAce += $object.DistinguishedName.ToString()
                     } catch {
                         Write-Warning "Could not grant $Group $Rights on $($object.DistinguishedName)"
-                        $ObjectsThatCouldNotBeUpdated += $object.DistinguishedName
+                        $ObjectsThatCouldNotBeUpdated += $object.DistinguishedName.ToString()
                     }
                 }
             }
@@ -82,7 +105,9 @@ function Get-AuditingGroupAcls.ps1 {
         Remove-PSDrive ADDOMAIN
     }
 
-    $ObjectsWithUnreadableACL | Export-Csv -Path .\ObjectsWithUnreadableACL.csv
-    $ObjectsWithUnreadableSD | Export-Csv -Path .\ObjectsWithUnreadableSD.csv
-    $ObjectsThatCouldNotBeUpdated | Export-Csv -Path .\ObjectsThatCouldNotBeUpdated.csv
+    $ObjectsThatCouldNotBeUpdated | ConvertTo-Json | Out-File -FilePath (Join-Path -Path $Path -ChildPath 'ObjectsThatCouldNotBeUpdated.json') -Force
+    $ObjectsWithExistingAce | ConvertTo-Json | Out-File -FilePath (Join-Path -Path $Path -ChildPath 'ObjectsWithExistingAce.json') -Force
+    $ObjectsWithNewAce | ConvertTo-Json | Out-File -FilePath (Join-Path -Path $Path -ChildPath 'ObjectsWithNewAce.json') -Force
+    $ObjectsWithUnreadableAcl | ConvertTo-Json | Out-File -FilePath (Join-Path -Path $Path -ChildPath 'ObjectsWithUnreadableAcl.json') -Force
+    $ObjectsWithUnreadableSD | ConvertTo-Json | Out-File -FilePath (Join-Path -Path $Path -ChildPath 'ObjectsWithUnreadableSD.json') -Force
 }
