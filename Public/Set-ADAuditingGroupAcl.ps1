@@ -1,21 +1,41 @@
 function Set-ADAuditingGroupAcl {
     <#
-        .SYNOPSIS
+    .SYNOPSIS
+        Sets an ACE on all objects in the Active Directory forest to allow a specified group to read all properties.
 
-        .DESCRIPTION
+    .PARAMETER Group
+        The group that will be given read access to all objects in the domain.
+        Must be in NTAccount format (example: CONTOSO\Domain Admins).
 
-        .PARAMETER Parameter
+    .PARAMETER Path
+        The path to output JSON files that contain lists of objects that could not be updated, were updated, etc.
+        If not specified, the current directory is used.
 
-        .INPUTS
+    .EXAMPLE
+        Set-ADAuditingGroupAcl -Group 'CONTOSO\ADAuditingGroup'
 
-        .OUTPUTS
+        This example will add an ACE to all objects in the domain to allow the ADAuditingGroup group read access and
+        output JSON files to the current directory.
 
-        .EXAMPLE
+    .EXAMPLE
+        Set-ADAuditingGroupAcl -Group 'CONTOSO\ADAuditingGroup' -Path C:\ADAG\
 
-        .LINK
+        This example will add an ACE to all objects in the domain to allow the DomainAdmins group read access and
+        output JSON files to C:\ADAG\.
+
+    .INPUTS
+        None
+
+    .OUTPUTS
+        ObjectsThatCouldNotBeUpdated.json
+        ObjectsWithExistingAce.json
+        ObjectsWithNewAce.json
+        ObjectsWithUnreadableAcl.json
+        ObjectsWithUnreadableSD.json
     #>
     [CmdLetBinding()]
     param (
+        [Parameter(Mandatory)]
         [string]$Group,
         $Path = $PWD
     )
