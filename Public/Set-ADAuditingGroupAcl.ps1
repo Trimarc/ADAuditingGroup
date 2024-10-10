@@ -20,7 +20,7 @@ function Set-ADAuditingGroupAcl {
     .EXAMPLE
         Set-ADAuditingGroupAcl -Group 'CONTOSO\ADAuditingGroup' -Path C:\ADAG\
 
-        This example will add an ACE to all objects in the domain to allow the DomainAdmins group read access and
+        This example will add an ACE to all objects in the domain to allow the ADAuditingGroup group read access and
         output JSON files to C:\ADAG\.
 
     .INPUTS
