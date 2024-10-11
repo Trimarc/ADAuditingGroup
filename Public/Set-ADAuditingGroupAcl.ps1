@@ -66,7 +66,9 @@ function Set-ADAuditingGroupAcl {
     $Acl = $null
 
     # Loop through all domains in the forest
+    $DomainCounter = 1
     foreach ($domain in $Domains) {
+        Write-Host -Object "Updating ACLs on objects in $domain (Domain $DomainCounter of $($Domains.count) in the $((Get-ADForest).Name) forest.)" -ForegroundColor Blue -BackgroundColor Black
 
         # Get all objects in the domain (except excluded containers)
         $DomainADObjects = Get-ADObject -Filter * -Server $domain | Where-Object DistinguishedName -notmatch 'CN=Configuration,DC|CN=System,DC='
@@ -75,7 +77,10 @@ function Set-ADAuditingGroupAcl {
         New-PSDrive -Name ADDOMAIN -PSProvider ActiveDirectory -Server $domain -Scope Global -Root 'AD:' -ErrorAction Stop | Out-Null
 
         # Loop through all objects in the current domain
+        $ObjectCounter = 1
         foreach ($object in $DomainADObjects) {
+            Write-Progress -Activity "Attempting to update ACL on $($object.DistinguishedName)" -Status "$ObjectCounter/$($DomainADObjects.count)"
+
             $ObjectPath = "ADDOMAIN:\$($object.DistinguishedName)"
 
             # Get the ACL for the Object
@@ -104,7 +109,7 @@ function Set-ADAuditingGroupAcl {
                 }
 
                 if ($AceExists) {
-                    # Write-Host "$Group should be able to read $($object.DistinguishedName)"
+                    Write-Verbose "Expected ACE already exists on $($object.DistinguishedName)"
                     $ObjectsWithExistingAce += $object.DistinguishedName.ToString()
                 } else {
                     Write-Host "No ACE for $Group exists on $($object.DistinguishedName). Attempting to add the correct ACE."
@@ -113,6 +118,8 @@ function Set-ADAuditingGroupAcl {
                     # Write the updated ACL on the Object
                     try {
                         Set-Acl -Path $ObjectPath -AclObject $Acl -ErrorAction Stop
+                        
+                    Write-Verbose "Successfully added ACE to $($object.DistinguishedName)"
                         $ObjectsWithNewAce += $object.DistinguishedName.ToString()
                     } catch {
                         Write-Warning "Could not grant $Group $Rights on $($object.DistinguishedName)"
@@ -120,9 +127,11 @@ function Set-ADAuditingGroupAcl {
                     }
                 }
             }
+            $ObjectCounter++
         }
 
         Remove-PSDrive ADDOMAIN
+        $DomainCounter++
     }
 
     $ObjectsThatCouldNotBeUpdated | ConvertTo-Json | Out-File -FilePath (Join-Path -Path $Path -ChildPath 'ObjectsThatCouldNotBeUpdated.json') -Force
